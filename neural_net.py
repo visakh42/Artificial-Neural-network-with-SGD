@@ -24,12 +24,13 @@ def create_train_test(data,num_folds):
     return train_data,test_data
 
 def prepare(data):
-    Xdata = data.drop(labels = 'Class',axis = 1)
+    Xdata = data.drop(labels = 'Class',axis = 1) 
     Y_vals = data['Class'].values
     Y_vals[Y_vals=='Mine'] = 1
     Y_vals[Y_vals=='Rock'] = 0
     X_norm = (Xdata - Xdata.mean())/(Xdata.max()-Xdata.min())
     X =  X_norm.as_matrix()
+    X = np.c_[np.ones(X.shape[0]),X]
     Y = np.row_stack(Y_vals)
     return X,Y
 
@@ -41,18 +42,17 @@ def deriv_sigmoid(x):
     return x*(1-x)
  
 def batches(X,Y,size):
-    #for i in np.arange(0,X.shape[0],size):
-        #yield X[i:i+size,],Y[i:i+size]
-        yield X,Y
+    for i in np.arange(0,X.shape[0],size):
+        yield X[i:i+size,],Y[i:i+size]
+        #yield X,Y
 
 def neural_net_train(train_data,epochs,folds,learn_rate):
     
     X,Y = prepare(train_data)
     
-    weight_hidden = np.random.uniform(size=(X.shape[1],X.shape[0])) 
-    bias_hidden = np.random.uniform(size=(1,X.shape[0]))
-    weight_output = np.random.uniform(size=(X.shape[0],1))
-    bias_output = np.random.uniform(size=(1,1))
+    weight_hidden = np.random.uniform(size=(X.shape[1],X.shape[1])) 
+    weight_output = np.random.uniform(size=(X.shape[1],1))
+
     
     batch_size = 32
     batches(X,Y,batch_size)
@@ -60,13 +60,12 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
     for i in range(0,epochs):
         for (xbatch,ybatch) in batches(X,Y,batch_size):
             #Forward propogation
+            
             hidden_layer_inputs = xbatch.dot(weight_hidden)
-            hidden_layer_inputs_with_bias = hidden_layer_inputs + bias_hidden
-            hidden_layer_values = sigmoid(hidden_layer_inputs_with_bias)
+            hidden_layer_values = sigmoid(hidden_layer_inputs)
             
             output_inputs = hidden_layer_values.dot(weight_output)
-            output_inputs_with_bias = output_inputs + bias_output
-            output_values = sigmoid(output_inputs_with_bias)
+            output_values = sigmoid(output_inputs)
 
             
             #backward propogation
@@ -74,22 +73,18 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
 
             slope_of_output = deriv_sigmoid(output_values)
             slope_of_hidden = deriv_sigmoid(hidden_layer_values)
-             
-            delta_of_output = error*slope_of_output
             
-            error_of_hidden  = weight_output.T.dot(delta_of_output)             
+
+            delta_of_output = error*slope_of_output
+            error_of_hidden  = delta_of_output.dot(weight_output.T)             
             delta_of_hidden = error_of_hidden * slope_of_hidden
              
  
             weight_output_increment = (hidden_layer_values.T.dot(delta_of_output))*learn_rate 
             weight_output =  weight_output + weight_output_increment                         
-            bias_output_increment = np.sum(delta_of_output,axis=0,keepdims= True)*learn_rate
-            bias_output = bias_output_increment + bias_output
         
             weight_hidden_increment = (xbatch.T.dot(delta_of_hidden))*learn_rate
             weight_hidden = weight_hidden + weight_hidden_increment
-            bias_hidden_increment = np.sum(delta_of_hidden,axis=0,keepdims= True)*learn_rate
-            bias_hidden = bias_hidden + bias_hidden_increment
 
 
     return weight_hidden,bias_hidden,weight_output,bias_output                     
@@ -98,10 +93,10 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
 def prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output): 
     accuracy_count = 0          
     X,Y = prepare(test_data)
-    hidden_layer_input = X.dot(weight_hidden) + bias_hidden
+    hidden_layer_input = X.dot(weight_hidden)
     hidden_layer = sigmoid(hidden_layer_input)
 
-    output_layer_input = hidden_layer.dot(weight_output)+ bias_output
+    output_layer_input = hidden_layer.dot(weight_output)
     output_layer =  sigmoid(output_layer_input)
    
     for i in range(0,Y.shape[0]):
@@ -125,7 +120,7 @@ if __name__ == '__main__':
     #learning_rate = int(sys.argv[3])
     #num_epochs = int(sys.argv[4])
     num_folds = 5
-    num_epochs = 1000
+    num_epochs = 1
     learning_rate = 0.1
     train_file='sonar.arff'
     data = read_data(train_file)
