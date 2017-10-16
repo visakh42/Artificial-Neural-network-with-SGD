@@ -160,7 +160,7 @@ if __name__ == '__main__':
     train_file='sonar.arff'
     data = read_data(train_file)
     accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
-    print(accuracy_list)
+    print(sum(accuracy_list)/len(accuracy_list))
 #    weight_hidden,bias_hidden,weight_output,bias_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
 #    prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output)
     
