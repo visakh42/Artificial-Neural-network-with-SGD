@@ -2,7 +2,7 @@
 """
 Created on Wed Oct 11 15:46:00 2017
 
-@author: visakh
+@author: visak
 """
 
 import numpy as np
@@ -55,8 +55,8 @@ def create_train_test(data,num_folds,learning_rate,num_epochs):
         train_data = pd.concat(train_datas)
         train_data=train_data.sample(frac=1).reset_index(drop=True)
         test_data=test_data.sample(frac=1).reset_index(drop=True)
-        weight_hidden,bias_hidden,weight_output,bias_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
-        accuracy = prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output)
+        weight_hidden,weight_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
+        accuracy = prediction(test_data,weight_hidden,weight_output)
         accuracy_list.append(accuracy)
 
     return accuracy_list
@@ -77,7 +77,8 @@ def sigmoid(x):
     return 1/(1+np.exp(-x))
 
 def deriv_sigmoid(x):
-    return x*(1-x)
+#    return x*(1-x)
+    return sigmoid(x)*(1-sigmoid(x))
  
 def batches(X,Y,size):
     for i in np.arange(0,X.shape[0],size):
@@ -88,8 +89,8 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
     
     X,Y = prepare(train_data)
     
-    weight_hidden = np.random.uniform(size=(X.shape[1],X.shape[1])) 
-    weight_output = np.random.uniform(size=(X.shape[1],1))
+    weight_hidden = np.random.uniform(low=-1,high=1,size=(X.shape[1],X.shape[1])) 
+    weight_output = np.random.uniform(low=-1,high=1,size=(X.shape[1],1))
 
     
     batch_size = 32
@@ -107,13 +108,13 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
 
             
             #backward propogation
-            error = ybatch - output_values
+            error =  ybatch - output_values
 
-            slope_of_output = deriv_sigmoid(output_values)
+            slope_of_output = error
             slope_of_hidden = deriv_sigmoid(hidden_layer_values)
             
 
-            delta_of_output = error*slope_of_output
+            delta_of_output = slope_of_output
             error_of_hidden  = delta_of_output.dot(weight_output.T)             
             delta_of_hidden = error_of_hidden * slope_of_hidden
              
@@ -125,10 +126,10 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
             weight_hidden = weight_hidden + weight_hidden_increment
 
 
-    return weight_hidden,bias_hidden,weight_output,bias_output                     
+    return weight_hidden,weight_output                     
             
             
-def prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output): 
+def prediction(test_data,weight_hidden,weight_output): 
     accuracy_count = 0          
     X,Y = prepare(test_data)
     hidden_layer_input = X.dot(weight_hidden)
@@ -154,13 +155,14 @@ if __name__ == '__main__':
     #num_folds = int(sys.argv[2])
     #learning_rate = int(sys.argv[3])
     #num_epochs = int(sys.argv[4])
-    num_folds = 5
-    num_epochs = 1000
-    learning_rate = 0.1
+    num_folds = 4
+    num_epochs = 100
+    learning_rate = 0.5
     train_file='sonar.arff'
     data = read_data(train_file)
     accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
     print(accuracy_list)
+    print(sum(accuracy_list)/len(accuracy_list))
 #    weight_hidden,bias_hidden,weight_output,bias_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
 #    prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output)
     
