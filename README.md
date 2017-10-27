@@ -7,3 +7,4 @@ Cross entropy error loss function
 Accuracy variation plots
   1. Number of epochs
   2. Number of folds
+  3. ROC curve
