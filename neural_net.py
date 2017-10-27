@@ -57,7 +57,7 @@ def create_train_test(data,num_folds,learning_rate,num_epochs):
         train_data=train_data.sample(frac=1).reset_index(drop=True)
         test_data=test_data.sample(frac=1).reset_index(drop=True)
         weight_hidden,weight_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
-        accuracy = prediction(test_data,weight_hidden,weight_output,i)
+        accuracy = prediction(test_data,weight_hidden,weight_output,i,num_folds)
         accuracy_list.append(accuracy)
 
     return accuracy_list
@@ -130,22 +130,38 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
     return weight_hidden,weight_output                     
             
             
-def prediction(test_data,weight_hidden,weight_output,fold): 
+def prediction(test_data,weight_hidden,weight_output,fold,num_folds):
+    global tpr
+    global fpr
     global predictions
-    accuracy_count = 0          
+    accuracy_count = 0  
+    global true_positive
+    global false_positive       
     X,Y = prepare(test_data)
     hidden_layer_input = X.dot(weight_hidden)
     hidden_layer = sigmoid(hidden_layer_input)
-
     output_layer_input = hidden_layer.dot(weight_output)
     output_layer =  sigmoid(output_layer_input)
-    for i in range(0,Y.shape[0]):
+    total_positive = sum(1 for i in Y[:,0] if i == 1)
+    total_negative = sum(1 for i in Y[:,0] if i == 0)
+    total_positive = total_positive * num_folds 
+    total_negative = total_negative * num_folds
+#    for i in range(0,Y.shape[0]):
+    for i in range(0,20):
         if(output_layer[i][0] > 0.5):
             predicted_class =1
         else:
             predicted_class =0
         if(Y[i][0] == predicted_class):
             accuracy_count += 1
+            if(predicted_class == 1):
+                true_positive += 1    
+        else:
+            if(predicted_class == 1):
+                false_positive += 1
+        if(predicted_class == 1):
+            tpr.append(true_positive/total_positive)
+            fpr.append(false_positive/total_negative)    
         predictions = predictions + "\n" + str(fold+1) + " " + str(1 if output_layer[i][0]>0.5 else 0)  + " " + str(Y[i][0]) + " " + str(output_layer[i][0])
     accuracy = accuracy_count/Y.shape[0]
     return accuracy
@@ -171,7 +187,7 @@ def fold_accuracy(data):
     epoch_accuracy_list = []
     k = [5,10,15,20,25]
     for i in k:
-        accuracy_list = create_train_test(data,num_folds,i,num_epochs)
+        accuracy_list = create_train_test(data,i,learning_rate,num_epochs)
         epoch_accuracy_list.append(sum(accuracy_list)/len(accuracy_list))
     plt.figure(2)
     plt.plot(k,epoch_accuracy_list)
@@ -179,6 +195,25 @@ def fold_accuracy(data):
     plt.ylabel("Average accuracy")
     plt.title("Accuracy variation with number of folds")
     plt.savefig("Accuracy variation with number of folds.png")
+    
+def roc_curve(data):
+    global tpr
+    global fpr
+    num_folds = 10
+    num_epochs = 50
+    learning_rate = 0.1
+    tpr.append(0)
+    fpr.append(0)
+    accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
+    plt.figure(3)
+    fpr.append(1)
+    tpr.append(1)
+    plt.plot(fpr,tpr)
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.xlabel("False positive rate")
+    plt.ylabel("True positive rate")
+    plt.title("ROC curve")
+    plt.savefig("ROC curve.png")
 
 
 if __name__ == '__main__':
@@ -186,17 +221,22 @@ if __name__ == '__main__':
     #num_folds = int(sys.argv[2])
     #learning_rate = int(sys.argv[3])
     #num_epochs = int(sys.argv[4]) 
+    tpr = []
+    fpr = []
     predictions = ""
+    true_positive = 0
+    false_positive = 0
     num_folds = 10
     num_epochs = 1000
     learning_rate = 0.1
     train_file='sonar.arff'
     data = read_data(train_file)
-    predictions = str("**Fold**Predicted class**Actual class**Confidence of prediction**")
-    accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
-    print(accuracy_list)
-    print("Total accuracy across folds: " , sum(accuracy_list)/len(accuracy_list))
-    print(predictions)
-    epoch_accuracy(data)
-    fold_accuracy(data)
+#    predictions = str("**Fold**Predicted class**Actual class**Confidence of prediction**")
+#    accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
+#    print(accuracy_list)
+#    print("Total accuracy across folds: " , sum(accuracy_list)/len(accuracy_list))
+#    print(predictions)
+#    epoch_accuracy(data)
+#    fold_accuracy(data)
+    roc_curve(data)
     
