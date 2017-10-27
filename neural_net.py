@@ -2,12 +2,13 @@
 """
 Created on Wed Oct 11 15:46:00 2017
 
-@author: visak
+@author: visakh
 """
 
 import numpy as np
 import pandas as pd
 from scipy.io import arff
+import matplotlib.pyplot as plt
 
 def read_data(file_to_read):
     dataset = arff.loadarff(file_to_read)
@@ -56,7 +57,7 @@ def create_train_test(data,num_folds,learning_rate,num_epochs):
         train_data=train_data.sample(frac=1).reset_index(drop=True)
         test_data=test_data.sample(frac=1).reset_index(drop=True)
         weight_hidden,weight_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
-        accuracy = prediction(test_data,weight_hidden,weight_output)
+        accuracy = prediction(test_data,weight_hidden,weight_output,i)
         accuracy_list.append(accuracy)
 
     return accuracy_list
@@ -129,7 +130,8 @@ def neural_net_train(train_data,epochs,folds,learn_rate):
     return weight_hidden,weight_output                     
             
             
-def prediction(test_data,weight_hidden,weight_output): 
+def prediction(test_data,weight_hidden,weight_output,fold): 
+    global predictions
     accuracy_count = 0          
     X,Y = prepare(test_data)
     hidden_layer_input = X.dot(weight_hidden)
@@ -139,30 +141,62 @@ def prediction(test_data,weight_hidden,weight_output):
     output_layer =  sigmoid(output_layer_input)
     for i in range(0,Y.shape[0]):
         if(output_layer[i][0] > 0.5):
-            output_layer[i][0] =1
+            predicted_class =1
         else:
-            output_layer[i][0] =0
-        if(Y[i][0] == output_layer[i][0]):
+            predicted_class =0
+        if(Y[i][0] == predicted_class):
             accuracy_count += 1
+        predictions = predictions + "\n" + str(fold+1) + " " + str(1 if output_layer[i][0]>0.5 else 0)  + " " + str(Y[i][0]) + " " + str(output_layer[i][0])
     accuracy = accuracy_count/Y.shape[0]
     return accuracy
     
+def epoch_accuracy(data):
+    num_folds = 10
+    learning_rate = 0.1
+    epoch_accuracy_list = []
+    k = [25,50,75,100]
+    for i in k:
+        accuracy_list = create_train_test(data,num_folds,learning_rate,i)
+        epoch_accuracy_list.append(sum(accuracy_list)/len(accuracy_list))
+    plt.figure(1)
+    plt.plot(k,epoch_accuracy_list)
+    plt.xlabel("Number of Epochs")
+    plt.ylabel("Average accuracy")
+    plt.title("Accuracy variation with number of epochs")
+    plt.savefig("Accuracy variation with number of epochs.png")
     
+def fold_accuracy(data):
+    num_epochs = 50
+    learning_rate = 0.1
+    epoch_accuracy_list = []
+    k = [5,10,15,20,25]
+    for i in k:
+        accuracy_list = create_train_test(data,num_folds,i,num_epochs)
+        epoch_accuracy_list.append(sum(accuracy_list)/len(accuracy_list))
+    plt.figure(2)
+    plt.plot(k,epoch_accuracy_list)
+    plt.xlabel("Number of folds")
+    plt.ylabel("Average accuracy")
+    plt.title("Accuracy variation with number of folds")
+    plt.savefig("Accuracy variation with number of folds.png")
 
 
 if __name__ == '__main__':
     #train_file = str(sys.argv[1])
     #num_folds = int(sys.argv[2])
     #learning_rate = int(sys.argv[3])
-    #num_epochs = int(sys.argv[4])
-    num_folds = 4
-    num_epochs = 100
-    learning_rate = 0.5
+    #num_epochs = int(sys.argv[4]) 
+    predictions = ""
+    num_folds = 10
+    num_epochs = 1000
+    learning_rate = 0.1
     train_file='sonar.arff'
     data = read_data(train_file)
+    predictions = str("**Fold**Predicted class**Actual class**Confidence of prediction**")
     accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
     print(accuracy_list)
-    print(sum(accuracy_list)/len(accuracy_list))
-#    weight_hidden,bias_hidden,weight_output,bias_output = neural_net_train(train_data,num_epochs,num_folds,learning_rate)
-#    prediction(test_data,weight_hidden,bias_hidden,weight_output,bias_output)
+    print("Total accuracy across folds: " , sum(accuracy_list)/len(accuracy_list))
+    print(predictions)
+    epoch_accuracy(data)
+    fold_accuracy(data)
     
