@@ -5,6 +5,7 @@ Created on Wed Oct 11 15:46:00 2017
 @author: visakh
 """
 
+import sys
 import numpy as np
 import pandas as pd
 from scipy.io import arff
@@ -217,10 +218,10 @@ def roc_curve(data):
 
 
 if __name__ == '__main__':
-    #train_file = str(sys.argv[1])
-    #num_folds = int(sys.argv[2])
-    #learning_rate = int(sys.argv[3])
-    #num_epochs = int(sys.argv[4]) 
+#    train_file = str(sys.argv[1])
+#    num_folds = int(sys.argv[2])
+#    learning_rate = float(sys.argv[3])
+#    num_epochs = int(sys.argv[4]) 
     tpr = []
     fpr = []
     predictions = ""
@@ -231,12 +232,12 @@ if __name__ == '__main__':
     learning_rate = 0.1
     train_file='sonar.arff'
     data = read_data(train_file)
-#    predictions = str("**Fold**Predicted class**Actual class**Confidence of prediction**")
-#    accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
+    predictions = str("**Fold**Predicted class**Actual class**Confidence of prediction**")
+    accuracy_list = create_train_test(data,num_folds,learning_rate,num_epochs)
 #    print(accuracy_list)
-#    print("Total accuracy across folds: " , sum(accuracy_list)/len(accuracy_list))
-#    print(predictions)
-#    epoch_accuracy(data)
-#    fold_accuracy(data)
+    print("Total accuracy across folds: " , sum(accuracy_list)/len(accuracy_list))
+    print(predictions)
+    epoch_accuracy(data)
+    fold_accuracy(data)
     roc_curve(data)
     
